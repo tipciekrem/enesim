@@ -1,8 +1,8 @@
 {
-    "name": "Turkish Providers Repository | @feroxxcs3",
-    "description": "Türkçe içerikli eklenti havuzu",
+    "name": "Enesim Deposu (Çalışan Sürümler)",
+    "description": "Güncel Türkçe Film, Dizi, Canlı TV ve Anime Eklentileri (@feroxx altyapılı)",
     "manifestVersion": 1,
     "pluginLists": [
-      "https://raw.githubusercontent.com/feroxx/Kekik-cloudstream/builds/plugins.json"
+        "https://raw.githubusercontent.com/tipciekrem/enesim/builds/plugins.json"
     ]
 }
