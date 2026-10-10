@@ -278,5 +278,26 @@
         "iconUrl": "https://rectv.org.tr/wp-content/uploads/2024/11/rectv-modified.webp",
         "apiVersion": 1,
         "fileHash": "sha256-e04263fe93a131c4502fab15615735d6826580f99062f61dc2b062c0ce8976ab"
+    },
+    {
+        "url": "https://raw.githubusercontent.com/tipciekrem/enesim/builds/HDFilmDelisi.cs3",
+        "status": 1,
+        "version": 300,
+        "name": "HDFilmDelisi",
+        "internalName": "HDFilmDelisi",
+        "authors": [
+            "patr0n",
+            "keyiflerolsun"
+        ],
+        "description": "HD Film Delisi - hdfilmdelisi.one Türkçe Dublaj ve Altyazılı Full HD Filmler",
+        "fileSize": 68405,
+        "repositoryUrl": "https://github.com/tipciekrem/enesim",
+        "language": "tr",
+        "tvTypes": [
+            "Movie"
+        ],
+        "iconUrl": "https://www.google.com/s2/favicons?domain=hdfilmdelisi.one&sz=%size%",
+        "apiVersion": 1,
+        "fileHash": "sha256-a82460563bd7573a8448bf67fc3e9b21394f8e2b20441acee777d2bf4f25281f"
     }
 ]

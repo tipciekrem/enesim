@@ -1,6 +1,6 @@
 {
     "name": "Enesim (Sadece Çalışanlar)",
-    "description": "Kullanıcı Tarafından Test Edilmiş Kesintisiz Çalışan 13 Türk & Global Film, Dizi ve Canlı TV Eklentisi",
+    "description": "Kullanıcı Tarafından Test Edilmiş Kesintisiz Çalışan 14 Türk & Global Film, Dizi ve Canlı TV Eklentisi",
     "manifestVersion": 1,
     "pluginLists": [
         "https://raw.githubusercontent.com/tipciekrem/enesim/builds/plugins.json"
