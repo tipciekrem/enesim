@@ -257,90 +257,44 @@ class HDFilmDelisi(private val sharedPref: SharedPreferences? = null) : MainAPI(
             return false
         }
         val responseText = response.text
-        val document = response.document
-
         var foundVideo = false
-        val sentUrls = mutableSetOf<String>()
 
-        // 1. JSON-LD VideoObject contentUrl
-        val jsonLdScripts = document.select("script[type='application/ld+json']")
-        for (el in jsonLdScripts) {
+        // 1. Real Video Player: Vixolity (pl.vixolity.com)
+        val vixRegex = Regex("""(https?:[\\/]+pl\.vixolity\.com[\\/][a-zA-Z0-9=]+)""")
+        val vixMatch = vixRegex.find(responseText)?.groupValues?.get(1)
+        val vixUrl = vixMatch?.replace("\\/", "/")?.replace("\\", "")
+
+        if (vixUrl != null) {
             try {
-                val map = parseJson<Map<String, Any>>(el.html())
-                if (map["@type"] == "VideoObject") {
-                    val contentUrl = map["contentUrl"] as? String
-                    if (!contentUrl.isNullOrBlank() && (contentUrl.endsWith(".mp4") || contentUrl.contains("/vids/"))) {
-                        if (sentUrls.add(contentUrl)) {
-                            callback.invoke(
-                                newExtractorLink(
-                                    name = "HDFilmDelisi Direct",
-                                    source = "HDFilmDelisi",
-                                    url = contentUrl,
-                                    type = ExtractorLinkType.VIDEO
-                                ) {
-                                    this.referer = "$mainUrl/"
-                                    this.headers = mapOf("User-Agent" to userAgent, "Referer" to "$mainUrl/")
-                                }
-                            )
-                            foundVideo = true
-                        }
-                    }
-                }
-            } catch (_: Exception) {}
-        }
-
-        // 2. Direct regex search for mp4 links from hdfilmdelisi.one/vids/
-        val vidsRegex = Regex("""https?:[\\/]+hdfilmdelisi\.one[\\/]vids[\\/][a-zA-Z0-9_\-]+\.mp4""")
-        val vidsMatches = vidsRegex.findAll(responseText).map {
-            it.value.replace("\\/", "/").replace("\\", "")
-        }.distinct().toList()
-
-        for (vidUrl in vidsMatches) {
-            if (sentUrls.add(vidUrl)) {
-                callback.invoke(
-                    newExtractorLink(
-                        name = "HDFilmDelisi MP4",
-                        source = "HDFilmDelisi",
-                        url = vidUrl,
-                        type = ExtractorLinkType.VIDEO
-                    ) {
-                        this.referer = "$mainUrl/"
-                        this.headers = mapOf("User-Agent" to userAgent, "Referer" to "$mainUrl/")
-                    }
+                val vixHeaders = mapOf(
+                    "User-Agent" to userAgent,
+                    "Referer" to "$mainUrl/"
                 )
-                foundVideo = true
-            }
-        }
-
-        // 3. Embed URLs: https://hdfilmdelisi.one/embed/...
-        val embedRegex = Regex("""https?:[\\/]+hdfilmdelisi\.one[\\/]embed[\\/][a-zA-Z0-9_\-]+""")
-        val embedMatches = embedRegex.findAll(responseText).map {
-            it.value.replace("\\/", "/").replace("\\", "")
-        }.distinct().toList()
-
-        for (embedUrl in embedMatches) {
-            try {
-                val embedHtml = app.get(embedUrl, headers = mapOf("User-Agent" to userAgent, "Referer" to targetUrl)).text
-                val sourceRegex = Regex("""<source\s+src=["']([^"']+\.mp4)["']""")
-                val sourceMatch = sourceRegex.find(embedHtml)?.groupValues?.get(1)
-                if (!sourceMatch.isNullOrBlank() && sentUrls.add(sourceMatch)) {
+                val vixHtml = app.get(vixUrl, headers = vixHeaders).text
+                val streamUrl = decodeVixolity(vixHtml)
+                if (!streamUrl.isNullOrBlank()) {
                     callback.invoke(
                         newExtractorLink(
-                            name = "HDFilmDelisi Embed",
+                            name = "HDFilmDelisi (1080p HLS)",
                             source = "HDFilmDelisi",
-                            url = sourceMatch,
-                            type = ExtractorLinkType.VIDEO
+                            url = streamUrl,
+                            type = ExtractorLinkType.M3U8
                         ) {
-                            this.referer = "$mainUrl/"
-                            this.headers = mapOf("User-Agent" to userAgent, "Referer" to "$mainUrl/")
+                            this.referer = "https://pl.vixolity.com/"
+                            this.headers = mapOf(
+                                "User-Agent" to userAgent,
+                                "Referer" to "https://pl.vixolity.com/"
+                            )
                         }
                     )
                     foundVideo = true
                 }
-            } catch (_: Exception) {}
+            } catch (e: Exception) {
+                Log.e("HDFilmDelisi", "Vixolity decode error: ${e.message}")
+            }
         }
 
-        // 4. VidMody (fallback)
+        // 2. VidMody (fallback if present)
         val vidmodyRegex = Regex("""(https?:[\\/]+player\.vidmody\.com[\\/][a-zA-Z0-9=\\/]+)""")
         val vidmodyMatch = vidmodyRegex.find(responseText)?.groupValues?.get(1)
         val vidmodyUrl = vidmodyMatch?.replace("\\/", "/")?.replace("\\", "")
@@ -350,7 +304,7 @@ class HDFilmDelisi(private val sharedPref: SharedPreferences? = null) : MainAPI(
             VidMody().getUrl(vidmodyUrl, targetUrl, subtitleCallback, callback)
         }
 
-        // 5. Subtitles
+        // 3. Subtitles
         val imdbId  = linkData?.imdbId
         val season  = linkData?.season
         val episode = linkData?.episode
@@ -362,6 +316,36 @@ class HDFilmDelisi(private val sharedPref: SharedPreferences? = null) : MainAPI(
         }
 
         return foundVideo
+    }
+
+    private fun decodeVixolity(html: String): String? {
+        val regex = Regex("""\}\)\('([0-9a-fA-F]+)',\s*(\d+)\)""")
+        val match = regex.find(html) ?: return null
+        val hexStr = match.groupValues[1]
+        val shift = match.groupValues[2].toIntOrNull() ?: return null
+
+        val hexDecoded = StringBuilder()
+        for (i in 0 until hexStr.length step 2) {
+            val byteVal = hexStr.substring(i, i + 2).toInt(16)
+            hexDecoded.append(byteVal.toChar())
+        }
+
+        val reversed = hexDecoded.toString().reversed()
+        val b64Bytes = android.util.Base64.decode(reversed, android.util.Base64.DEFAULT)
+        val b64Decoded = String(b64Bytes, Charsets.ISO_8859_1)
+
+        val shifted = StringBuilder()
+        for (c in b64Decoded) {
+            shifted.append((c.code - shift).toChar())
+        }
+
+        val decodedJs = shifted.toString()
+        val fileRegex = Regex("""file\s*:\s*['"]([^'"]+)['"]""")
+        val rawFile = fileRegex.find(decodedJs)?.groupValues?.get(1) ?: return null
+
+        return Regex("""\\x([0-9a-fA-F]{2})""").replace(rawFile) {
+            it.groupValues[1].toInt(16).toChar().toString()
+        }
     }
 
     companion object {
