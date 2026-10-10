@@ -1,4 +1,3 @@
-//Eklenti kraptor reposundan çekilip düzenlenmiştir.
 package com.patron
 
 import android.content.SharedPreferences
@@ -9,25 +8,18 @@ import com.lagradost.cloudstream3.LoadResponse.Companion.addTrailer
 import com.lagradost.cloudstream3.utils.AppUtils.parseJson
 import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.ExtractorLinkType
-import com.lagradost.cloudstream3.utils.M3u8Helper
+import com.lagradost.cloudstream3.utils.newExtractorLink
 import com.lagradost.cloudstream3.app
 import com.lagradost.api.Log
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withTimeoutOrNull
-import okhttp3.OkHttpClient
-import java.util.concurrent.TimeUnit
-import com.lagradost.cloudstream3.ActorData
-import com.lagradost.cloudstream3.ActorRole
-import com.lagradost.cloudstream3.ShowStatus
 
 data class LinkData(
-    @JsonProperty("url")    val url: String?,
-    @JsonProperty("type")   val type: String?,
-    @JsonProperty("season") val season: Int?,
-    @JsonProperty("episode")val episode: Int?,
-    @JsonProperty("tmdbId") val tmdbId: Int?,
-    @JsonProperty("imdbId") val imdbId: String?
+    @JsonProperty("url")     val url: String?,
+    @JsonProperty("type")    val type: String?,
+    @JsonProperty("season")  val season: Int?,
+    @JsonProperty("episode") val episode: Int?,
+    @JsonProperty("tmdbId")  val tmdbId: Int?,
+    @JsonProperty("imdbId")  val imdbId: String?
 )
 
 data class ExternalIds(
@@ -37,11 +29,11 @@ data class ExternalIds(
 
 class HDFilmDelisi(private val sharedPref: SharedPreferences? = null) : MainAPI() {
 
-    override var mainUrl    = getDomain(sharedPref)
-    override var name       = "HDFilmDelisi"
+    override var mainUrl        = getDomain(sharedPref)
+    override var name           = "HDFilmDelisi"
     override val hasMainPage    = true
     override val hasQuickSearch = false
-    override var lang       = "tr"
+    override var lang           = "tr"
     override val supportedTypes = setOf(TvType.Movie, TvType.TvSeries)
 
     override val mainPage = mainPageOf(
@@ -51,17 +43,22 @@ class HDFilmDelisi(private val sharedPref: SharedPreferences? = null) : MainAPI(
         "$mainUrl/tur/animasyon"   to "Animasyon",
         "$mainUrl/tur/belgeseller" to "Belgeseller",
         "$mainUrl/tur/bilim-kurgu" to "Bilim Kurgu",
+        "$mainUrl/tur/cizgi"       to "Çizgi",
         "$mainUrl/tur/dram"        to "Dram",
         "$mainUrl/tur/fantastik"   to "Fantastik",
         "$mainUrl/tur/gerilim"     to "Gerilim",
         "$mainUrl/tur/gizem"       to "Gizem",
+        "$mainUrl/tur/hint"        to "Hint",
         "$mainUrl/tur/komedi"      to "Komedi",
         "$mainUrl/tur/korku"       to "Korku",
         "$mainUrl/tur/macera"      to "Macera",
+        "$mainUrl/tur/muzikal"     to "Müzikal",
+        "$mainUrl/tur/psikolojik"  to "Psikolojik",
         "$mainUrl/tur/romantik"    to "Romantik",
         "$mainUrl/tur/savas"       to "Savaş",
         "$mainUrl/tur/suc"         to "Suç",
         "$mainUrl/tur/tarih"       to "Tarih",
+        "$mainUrl/tur/western"     to "Western",
         "$mainUrl/tur/yerli"       to "Yerli"
     )
 
@@ -69,9 +66,6 @@ class HDFilmDelisi(private val sharedPref: SharedPreferences? = null) : MainAPI(
     private val headers   = mapOf("User-Agent" to userAgent)
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse? {
-        if (!HDFilmDelisiHelper.isAllowedVersion) {
-            return newHomePageResponse(request.name, emptyList(), false)
-        }
         val apiUrl = if (request.data == mainUrl) {
             "$mainUrl/api/films?page=$page&sort=newest&limit=20"
         } else {
@@ -97,7 +91,6 @@ class HDFilmDelisi(private val sharedPref: SharedPreferences? = null) : MainAPI(
     }
 
     override suspend fun search(query: String): List<SearchResponse> {
-        if (!HDFilmDelisiHelper.isAllowedVersion) return emptyList()
         return try {
             val url  = "$mainUrl/api/search?q=$query"
             val text = app.get(url, headers = headers).text
@@ -120,26 +113,50 @@ class HDFilmDelisi(private val sharedPref: SharedPreferences? = null) : MainAPI(
     }
 
     override suspend fun load(url: String): LoadResponse? {
-        if (!HDFilmDelisiHelper.isAllowedVersion) return null
         val document = app.get(url, headers = headers).document
 
-        val jsonLdRaw = document.selectFirst("script[type='application/ld+json']")?.html() ?: ""
-        val jsonLd    = runCatching { parseJson<Map<String, Any>>(jsonLdRaw) }.getOrNull()
+        val jsonLdScripts = document.select("script[type='application/ld+json']")
+        var parsedName: String? = null
+        var jsonLdPoster: String? = null
+        var jsonLdPlot: String? = null
 
-        val name     = document.selectFirst("h1.film-title, h1")?.text()?.trim() ?: ""
-        val poster   = document.selectFirst("meta[property='og:image']")?.attr("content")
+        for (el in jsonLdScripts) {
+            try {
+                val map = parseJson<Map<String, Any>>(el.html())
+                if (map["@type"] == "Movie") {
+                    parsedName = map["name"] as? String
+                    jsonLdPoster = map["image"] as? String
+                    jsonLdPlot = map["description"] as? String
+                }
+            } catch (_: Exception) {}
+        }
+
+        val ogTitle = document.selectFirst("meta[property='og:title']")?.attr("content") ?: ""
+        val cleanOgTitle = ogTitle.substringBefore(" izle").substringBefore(" (").trim()
+
+        val name = parsedName?.takeIf { it.isNotBlank() }
+            ?: cleanOgTitle.takeIf { it.isNotBlank() }
+            ?: document.selectFirst("h1.film-title")?.text()?.trim()
+            ?: document.title().substringBefore(" izle").trim()
+
+        val poster = jsonLdPoster
+            ?: document.selectFirst("meta[property='og:image']")?.attr("content")
             ?: document.selectFirst("img.film-poster, img.poster")?.attr("src")
-        val plot     = document.selectFirst("div.film-description, div.synopsis, p.description")?.text()
-        val yearStr  = document.selectFirst("span.film-year, span.year, a[href*='/yil/']")?.text()
-        val year     = yearStr?.filter { it.isDigit() }?.take(4)?.toIntOrNull()
-        val rating   = document.selectFirst("span.imdb-rating, span.rating")
-            ?.text()?.replace(",", ".")?.trim()?.toDoubleOrNull()
-        val duration = document.selectFirst("span.film-duration, span.duration")
-            ?.text()?.filter { it.isDigit() }?.toIntOrNull()
-        val tags     = document.select("a[href*='/tur/']").map { it.text().trim() }.filter { it.isNotBlank() }
 
-        val isTv     = document.selectFirst("div.season-list, div.sezonlar, div.episodes") != null
-        val tvType   = if (isTv) TvType.TvSeries else TvType.Movie
+        val plot = jsonLdPlot
+            ?: document.selectFirst("meta[property='og:description']")?.attr("content")
+            ?: document.selectFirst("div.film-description, div.synopsis, p.description")?.text()
+
+        val yearStr = document.selectFirst("span.film-year, span.year, a[href*='/yil/']")?.text()
+        val year = yearStr?.filter { it.isDigit() }?.take(4)?.toIntOrNull()
+            ?: Regex("""\b(19\d\d|20\d\d)\b""").find(document.html())?.value?.toIntOrNull()
+
+        val rating = document.selectFirst("span.imdb-rating, span.rating")
+            ?.text()?.replace(",", ".")?.trim()?.toDoubleOrNull()
+        val tags = document.select("a[href*='/tur/']").map { it.text().trim() }.filter { it.isNotBlank() }
+
+        val isTv = document.selectFirst("div.season-list, div.sezonlar, div.episodes") != null
+        val tvType = if (isTv) TvType.TvSeries else TvType.Movie
 
         val tmdbId: Int? = try {
             val idEl = document.selectFirst("meta[name='tmdb-id'], span[data-tmdb]")
@@ -159,7 +176,6 @@ class HDFilmDelisi(private val sharedPref: SharedPreferences? = null) : MainAPI(
         val finalPoster   = tmdb?.finalPoster ?: poster
         val finalPlot     = tmdb?.finalPlot ?: plot
         val finalYear     = tmdb?.finalYear ?: year
-        val finalDuration = tmdb?.finalDuration ?: duration
         val finalTmdbId   = tmdb?.tmdbId ?: tmdbId
         val finalImdbId   = tmdb?.imdbId ?: imdbId
 
@@ -235,23 +251,106 @@ class HDFilmDelisi(private val sharedPref: SharedPreferences? = null) : MainAPI(
         val linkData = runCatching { parseJson<LinkData>(data) }.getOrNull()
         val targetUrl = linkData?.url ?: data
 
-        val userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-        val responseText = try {
-            app.get(targetUrl, headers = mapOf("User-Agent" to userAgent)).text
+        val response = try {
+            app.get(targetUrl, headers = headers)
         } catch (e: Exception) {
             return false
         }
+        val responseText = response.text
+        val document = response.document
 
+        var foundVideo = false
+        val sentUrls = mutableSetOf<String>()
+
+        // 1. JSON-LD VideoObject contentUrl
+        val jsonLdScripts = document.select("script[type='application/ld+json']")
+        for (el in jsonLdScripts) {
+            try {
+                val map = parseJson<Map<String, Any>>(el.html())
+                if (map["@type"] == "VideoObject") {
+                    val contentUrl = map["contentUrl"] as? String
+                    if (!contentUrl.isNullOrBlank() && (contentUrl.endsWith(".mp4") || contentUrl.contains("/vids/"))) {
+                        if (sentUrls.add(contentUrl)) {
+                            callback.invoke(
+                                newExtractorLink(
+                                    name = "HDFilmDelisi Direct",
+                                    source = "HDFilmDelisi",
+                                    url = contentUrl,
+                                    type = ExtractorLinkType.VIDEO
+                                ) {
+                                    this.referer = "$mainUrl/"
+                                    this.headers = mapOf("User-Agent" to userAgent, "Referer" to "$mainUrl/")
+                                }
+                            )
+                            foundVideo = true
+                        }
+                    }
+                }
+            } catch (_: Exception) {}
+        }
+
+        // 2. Direct regex search for mp4 links from hdfilmdelisi.one/vids/
+        val vidsRegex = Regex("""https?:[\\/]+hdfilmdelisi\.one[\\/]vids[\\/][a-zA-Z0-9_\-]+\.mp4""")
+        val vidsMatches = vidsRegex.findAll(responseText).map {
+            it.value.replace("\\/", "/").replace("\\", "")
+        }.distinct().toList()
+
+        for (vidUrl in vidsMatches) {
+            if (sentUrls.add(vidUrl)) {
+                callback.invoke(
+                    newExtractorLink(
+                        name = "HDFilmDelisi MP4",
+                        source = "HDFilmDelisi",
+                        url = vidUrl,
+                        type = ExtractorLinkType.VIDEO
+                    ) {
+                        this.referer = "$mainUrl/"
+                        this.headers = mapOf("User-Agent" to userAgent, "Referer" to "$mainUrl/")
+                    }
+                )
+                foundVideo = true
+            }
+        }
+
+        // 3. Embed URLs: https://hdfilmdelisi.one/embed/...
+        val embedRegex = Regex("""https?:[\\/]+hdfilmdelisi\.one[\\/]embed[\\/][a-zA-Z0-9_\-]+""")
+        val embedMatches = embedRegex.findAll(responseText).map {
+            it.value.replace("\\/", "/").replace("\\", "")
+        }.distinct().toList()
+
+        for (embedUrl in embedMatches) {
+            try {
+                val embedHtml = app.get(embedUrl, headers = mapOf("User-Agent" to userAgent, "Referer" to targetUrl)).text
+                val sourceRegex = Regex("""<source\s+src=["']([^"']+\.mp4)["']""")
+                val sourceMatch = sourceRegex.find(embedHtml)?.groupValues?.get(1)
+                if (!sourceMatch.isNullOrBlank() && sentUrls.add(sourceMatch)) {
+                    callback.invoke(
+                        newExtractorLink(
+                            name = "HDFilmDelisi Embed",
+                            source = "HDFilmDelisi",
+                            url = sourceMatch,
+                            type = ExtractorLinkType.VIDEO
+                        ) {
+                            this.referer = "$mainUrl/"
+                            this.headers = mapOf("User-Agent" to userAgent, "Referer" to "$mainUrl/")
+                        }
+                    )
+                    foundVideo = true
+                }
+            } catch (_: Exception) {}
+        }
+
+        // 4. VidMody (fallback)
         val vidmodyRegex = Regex("""(https?:[\\/]+player\.vidmody\.com[\\/][a-zA-Z0-9=\\/]+)""")
         val vidmodyMatch = vidmodyRegex.find(responseText)?.groupValues?.get(1)
         val vidmodyUrl = vidmodyMatch?.replace("\\/", "/")?.replace("\\", "")
 
-        var foundVideo = false
         if (vidmodyUrl != null) {
             foundVideo = true
             VidMody().getUrl(vidmodyUrl, targetUrl, subtitleCallback, callback)
         }
 
+        // 5. Subtitles
         val imdbId  = linkData?.imdbId
         val season  = linkData?.season
         val episode = linkData?.episode
@@ -266,36 +365,10 @@ class HDFilmDelisi(private val sharedPref: SharedPreferences? = null) : MainAPI(
     }
 
     companion object {
-        private const val CACHE_DURATION   = 300_000L
-        private const val LAST_UPDATE_KEY  = "last_domain_update"
-        private const val DEFAULT_DOMAIN   = "https://hdfilmdelisi.one"
+        private const val DEFAULT_DOMAIN = "https://hdfilmdelisi.one"
 
         fun getDomain(prefs: SharedPreferences?): String {
-            if (prefs == null) return DEFAULT_DOMAIN
-            return runBlocking {
-                withTimeoutOrNull(3000L) {
-                    try {
-                        val lastUpdate = prefs.getLong(LAST_UPDATE_KEY, 0)
-                        val cached     = prefs.getString("HDFilmDelisi", null)
-                        if (cached != null && (System.currentTimeMillis() - lastUpdate) < CACHE_DURATION) {
-                            return@withTimeoutOrNull cached
-                        }
-                        val response = app.get("$DEFAULT_DOMAIN/domain.json")
-                        if (response.isSuccessful) {
-                            val domain = response.text.trim().trim('"')
-                            prefs.edit()
-                                .putString("HDFilmDelisi", domain)
-                                .putLong(LAST_UPDATE_KEY, System.currentTimeMillis())
-                                .apply()
-                            domain
-                        } else {
-                            DEFAULT_DOMAIN
-                        }
-                    } catch (e: Exception) {
-                        DEFAULT_DOMAIN
-                    }
-                } ?: DEFAULT_DOMAIN
-            }
+            return DEFAULT_DOMAIN
         }
     }
 }
