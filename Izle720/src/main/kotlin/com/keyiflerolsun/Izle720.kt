@@ -142,7 +142,7 @@ class Izle720 : MainAPI() {
 
         // Collect all parts (Dublaj / Altyazılı)
         val pageUrls = mutableListOf(data)
-        document.select("div.parts-middle a.post-page-numbers, div.part-links a").forEach {
+        document.select("div.parts-middle a.post-page-numbers, div.part-links a, div.keremiya_part a").forEach {
             val h = fixUrlNull(it.attr("href"))
             if (h != null && !pageUrls.contains(h)) {
                 pageUrls.add(h)
@@ -153,36 +153,37 @@ class Izle720 : MainAPI() {
 
         for (pageUrl in pageUrls) {
             val pageDoc = if (pageUrl == data) document else app.get(pageUrl).document
-            val iframeEl = pageDoc.selectFirst("div.video-content iframe, iframe[data-litespeed-src], iframe[src]")
-            val src = iframeEl?.let {
-                it.attr("data-litespeed-src").takeIf { s -> s.isNotBlank() }
-                    ?: it.attr("src").takeIf { s -> s.isNotBlank() && !s.startsWith("about:") }
-            } ?: continue
+            val iframes = pageDoc.select("iframe")
+            for (iframeEl in iframes) {
+                val src = iframeEl.attr("data-litespeed-src").takeIf { s -> s.isNotBlank() }
+                    ?: iframeEl.attr("src").takeIf { s -> s.isNotBlank() && !s.startsWith("about:") }
+                    ?: continue
 
-            val cleanSrc = fixUrl(src)
+                val cleanSrc = fixUrl(src)
 
-            when {
-                cleanSrc.contains("hotstream.club/embed/") -> {
-                    if (extractHotstream(cleanSrc, data, callback)) {
-                        foundAny = true
-                    }
-                }
-                cleanSrc.contains("vidmoly") -> {
-                    if (extractVidmoly(cleanSrc, data, callback)) {
-                        foundAny = true
-                    }
-                }
-                cleanSrc.contains("ok.ru") -> {
-                    if (extractOkRu(cleanSrc, callback)) {
-                        foundAny = true
-                    }
-                }
-                else -> {
-                    try {
-                        if (loadExtractor(cleanSrc, data, subtitleCallback, callback)) {
+                when {
+                    cleanSrc.contains("hotstream.club/embed/") -> {
+                        if (extractHotstream(cleanSrc, pageUrl, callback)) {
                             foundAny = true
                         }
-                    } catch (_: Exception) {}
+                    }
+                    cleanSrc.contains("vidmoly") -> {
+                        if (extractVidmoly(cleanSrc, pageUrl, callback)) {
+                            foundAny = true
+                        }
+                    }
+                    cleanSrc.contains("ok.ru") -> {
+                        if (extractOkRu(cleanSrc, callback)) {
+                            foundAny = true
+                        }
+                    }
+                    else -> {
+                        try {
+                            if (loadExtractor(cleanSrc, pageUrl, subtitleCallback, callback)) {
+                                foundAny = true
+                            }
+                        } catch (_: Exception) {}
+                    }
                 }
             }
         }
@@ -195,8 +196,15 @@ class Izle720 : MainAPI() {
         referer: String,
         callback: (ExtractorLink) -> Unit
     ): Boolean {
-        try {
-            val html = app.get(embedUrl, referer = referer).text
+        return try {
+            val html = app.get(
+                embedUrl,
+                headers = mapOf(
+                    "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                    "Referer"    to referer
+                )
+            ).text
+
             val match = Regex("""bePlayer\(\s*'([^']+)'\s*,\s*'(\{.+?\})'\s*\)""", RegexOption.DOT_MATCHES_ALL).find(html)
                 ?: return false
 
@@ -213,32 +221,54 @@ class Izle720 : MainAPI() {
 
             val videoLocation = decryptedData["video_location"] as? String ?: return false
 
-            val masterM3u8 = app.get(videoLocation, referer = "https://hotstream.club/").text
-            if (masterM3u8.contains("#EXTM3U") || masterM3u8.contains("#EXT-X-")) {
-                val streamUrls = masterM3u8.lines()
-                    .map { it.trim() }
-                    .filter { it.startsWith("http") }
+            val streamHeaders = mapOf(
+                "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                "Referer"    to embedUrl,
+                "Origin"     to "https://hotstream.club"
+            )
 
-                val targets = if (streamUrls.isNotEmpty()) streamUrls else listOf(videoLocation)
+            var extracted = false
+            try {
+                val masterM3u8 = app.get(videoLocation, headers = streamHeaders).text
+                if (masterM3u8.contains("#EXTM3U") || masterM3u8.contains("#EXT-X-")) {
+                    val streamUrls = masterM3u8.lines()
+                        .map { it.trim() }
+                        .filter { it.startsWith("http") }
 
-                for (target in targets) {
-                    val playableUrl = if (!target.contains(".m3u8")) "$target#.m3u8" else target
-                    callback.invoke(
-                        newExtractorLink(
-                            source = name,
-                            name   = "$name Hotstream",
-                            url    = playableUrl,
-                            type   = ExtractorLinkType.M3U8
-                        ) {
-                            this.headers = mapOf("Referer" to "https://hotstream.club/")
-                            this.quality = Qualities.P1080.value
-                        }
-                    )
+                    for (streamUrl in streamUrls) {
+                        val playableUrl = if (!streamUrl.contains(".m3u8")) "$streamUrl#.m3u8" else streamUrl
+                        callback.invoke(
+                            newExtractorLink(
+                                source = name,
+                                name   = "$name Hotstream",
+                                url    = playableUrl,
+                                type   = ExtractorLinkType.M3U8
+                            ) {
+                                this.headers = streamHeaders
+                                this.quality = Qualities.P1080.value
+                            }
+                        )
+                        extracted = true
+                    }
                 }
-                return true
-            }
-        } catch (_: Exception) {}
-        return false
+            } catch (_: Exception) {}
+
+            val directPlayable = if (!videoLocation.contains(".m3u8")) "$videoLocation#.m3u8" else videoLocation
+            callback.invoke(
+                newExtractorLink(
+                    source = name,
+                    name   = if (extracted) "$name Hotstream (Yedek)" else "$name Hotstream",
+                    url    = directPlayable,
+                    type   = ExtractorLinkType.M3U8
+                ) {
+                    this.headers = streamHeaders
+                    this.quality = Qualities.P1080.value
+                }
+            )
+            true
+        } catch (_: Exception) {
+            false
+        }
     }
 
     private suspend fun extractVidmoly(

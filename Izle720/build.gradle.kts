@@ -1,4 +1,4 @@
-version = 301
+version = 302
 
 cloudstream {
     authors     = listOf("keyiflerolsun", "patr0n")
