@@ -1,5 +1,27 @@
 [
     {
+        "url": "https://raw.githubusercontent.com/tipciekrem/enesim/builds/Izle720.cs3",
+        "status": 1,
+        "version": 300,
+        "name": "720izle",
+        "internalName": "720izle",
+        "authors": [
+            "keyiflerolsun",
+            "patr0n"
+        ],
+        "description": "720izle - 720izle.net Güncel Türkçe Dublaj ve Altyazılı Full HD Filmler ve Diziler.",
+        "fileSize": 21284,
+        "repositoryUrl": "https://github.com/tipciekrem/enesim",
+        "language": "tr",
+        "tvTypes": [
+            "Movie",
+            "TvSeries"
+        ],
+        "iconUrl": "https://www.google.com/s2/favicons?domain=720izle.net&sz=%size%",
+        "apiVersion": 1,
+        "fileHash": "sha256-ba2a2d5622cc8fd47a0ada5b536873c299c98864c0d55881c683e56059141a98"
+    },
+    {
         "url": "https://raw.githubusercontent.com/tipciekrem/enesim/builds/CanliTV.cs3",
         "status": 1,
         "version": 300,
@@ -227,6 +249,28 @@
         "iconUrl": "https://www.google.com/s2/favicons?domain=kultfilmler.net&sz=%size%",
         "apiVersion": 1,
         "fileHash": "sha256-47b263ff6bf1b4f65d17b3aee00112e687de473ce7fd2fd777b17c2ba0290104"
+    },
+    {
+        "url": "https://raw.githubusercontent.com/tipciekrem/enesim/builds/PuhuTV.cs3",
+        "status": 1,
+        "version": 300,
+        "name": "PuhuTV",
+        "internalName": "PuhuTV",
+        "authors": [
+            "keyiflerolsun",
+            "patr0n"
+        ],
+        "description": "PuhuTV - puhutv.com Yüzlerce Türk dizisi, filmi ve PuhuTV Orijinal yapımları Full HD kalitede.",
+        "fileSize": 23910,
+        "repositoryUrl": "https://github.com/tipciekrem/enesim",
+        "language": "tr",
+        "tvTypes": [
+            "TvSeries",
+            "Movie"
+        ],
+        "iconUrl": "https://www.google.com/s2/favicons?domain=puhutv.com&sz=%size%",
+        "apiVersion": 1,
+        "fileHash": "sha256-3efaec592b1be35f5de35c559a12d6a91f6b83e67f6c9e83498df3df8e6a5fc2"
     },
     {
         "url": "https://raw.githubusercontent.com/tipciekrem/enesim/builds/RecTV.cs3",
