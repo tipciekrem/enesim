@@ -282,15 +282,15 @@
     {
         "url": "https://raw.githubusercontent.com/tipciekrem/enesim/builds/HDFilmDelisi.cs3",
         "status": 1,
-        "version": 300,
+        "version": 301,
         "name": "HDFilmDelisi",
         "internalName": "HDFilmDelisi",
         "authors": [
             "patr0n",
             "keyiflerolsun"
         ],
-        "description": "HD Film Delisi - hdfilmdelisi.one Türkçe Dublaj ve Altyazılı Full HD Filmler",
-        "fileSize": 68405,
+        "description": "HD Film Delisi - hdfilmdelisi.one Türkçe Dublaj ve Altyazılı 1080p Full HD Filmler",
+        "fileSize": 64912,
         "repositoryUrl": "https://github.com/tipciekrem/enesim",
         "language": "tr",
         "tvTypes": [
@@ -298,6 +298,27 @@
         ],
         "iconUrl": "https://www.google.com/s2/favicons?domain=hdfilmdelisi.one&sz=%size%",
         "apiVersion": 1,
-        "fileHash": "sha256-a82460563bd7573a8448bf67fc3e9b21394f8e2b20441acee777d2bf4f25281f"
+        "fileHash": "sha256-8dc2cd6241bb216d89f559c587ae873bd1939aba51b0b558edac8dfc5b9cefff"
+    },
+    {
+        "url": "https://raw.githubusercontent.com/tipciekrem/enesim/builds/FilmDozu.cs3",
+        "status": 1,
+        "version": 300,
+        "name": "FilmDozu",
+        "internalName": "FilmDozu",
+        "authors": [
+            "keyiflerolsun",
+            "patr0n"
+        ],
+        "description": "FilmDozu - filmdozu.com Full HD Türkçe Dublaj & Altyazılı Filmler (VidMoly & OkRu)",
+        "fileSize": 13546,
+        "repositoryUrl": "https://github.com/tipciekrem/enesim",
+        "language": "tr",
+        "tvTypes": [
+            "Movie"
+        ],
+        "iconUrl": "https://www.google.com/s2/favicons?domain=filmdozu.com&sz=%size%",
+        "apiVersion": 1,
+        "fileHash": "sha256-7c15530e18e99839582b4f56977cc41391da153e8c2a64355cc7d72e7392c125"
     }
 ]
