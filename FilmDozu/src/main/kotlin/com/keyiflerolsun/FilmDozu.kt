@@ -1,82 +1,82 @@
 package com.keyiflerolsun
 
-import org.jsoup.nodes.Element
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
+import com.lagradost.cloudstream3.utils.AppUtils.tryParseJson
+import org.jsoup.nodes.Element
 
 class FilmDozu : MainAPI() {
     override var mainUrl              = "https://filmdozu.com"
     override var name                 = "FilmDozu"
     override val hasMainPage          = true
     override var lang                 = "tr"
-    override val hasQuickSearch       = false
+    override val hasQuickSearch       = true
     override val supportedTypes       = setOf(TvType.Movie)
 
     override val mainPage = mainPageOf(
-        "${mainUrl}/kesfet"          to "Keşfet (Son Eklenenler)",
-        "${mainUrl}/trend"           to "Trendler",
-        "${mainUrl}/dublaj"          to "Türkçe Dublaj",
-        "${mainUrl}/altyazili"       to "Türkçe Altyazılı",
-        "${mainUrl}/kategori/aksiyon"      to "Aksiyon",
-        "${mainUrl}/kategori/animasyon"    to "Animasyon",
-        "${mainUrl}/kategori/bilim-kurgu"  to "Bilim Kurgu",
-        "${mainUrl}/kategori/dram"         to "Dram",
-        "${mainUrl}/kategori/komedi"       to "Komedi",
-        "${mainUrl}/kategori/korku"        to "Korku",
-        "${mainUrl}/kategori/macera"       to "Macera",
-        "${mainUrl}/kategori/gerilim"      to "Gerilim",
-        "${mainUrl}/kategori/romantik"     to "Romantik",
-        "${mainUrl}/kategori/suc"          to "Suç",
-        "${mainUrl}/kategori/fantastik"    to "Fantastik",
-        "${mainUrl}/kategori/gizem"        to "Gizem",
-        "${mainUrl}/kategori/aile"         to "Aile",
-        "${mainUrl}/kategori/savas"        to "Savaş",
-        "${mainUrl}/kategori/tarih"        to "Tarih"
+        "${mainUrl}/kesfet/page/SAYFA/"                to "Keşfet",
+        "${mainUrl}/trend/page/SAYFA/"                 to "Trend Filmler",
+        "${mainUrl}/tur/turkce-dublaj/page/SAYFA/"     to "Türkçe Dublaj",
+        "${mainUrl}/tur/turkce-altyazi/page/SAYFA/"    to "Türkçe Altyazılı",
+        "${mainUrl}/kategori/aksiyon/page/SAYFA/"      to "Aksiyon",
+        "${mainUrl}/kategori/bilim-kurgu/page/SAYFA/"  to "Bilim Kurgu",
+        "${mainUrl}/kategori/komedi/page/SAYFA/"       to "Komedi",
+        "${mainUrl}/kategori/gerilim/page/SAYFA/"      to "Gerilim",
+        "${mainUrl}/kategori/korku/page/SAYFA/"        to "Korku",
+        "${mainUrl}/kategori/animasyon/page/SAYFA/"    to "Animasyon"
     )
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
-        val targetUrl = if (page > 1) "${request.data}?page=$page" else request.data
-        val document  = app.get(targetUrl).document
-        val items     = document.select("a[href*='/film/']").mapNotNull { it.toSearchResult() }.distinctBy { it.url }
+        val url = if (page == 1) {
+            request.data.replace("/page/SAYFA/", "/")
+        } else {
+            request.data.replace("SAYFA", "$page")
+        }
 
-        return newHomePageResponse(request.name, items, items.size >= 12)
+        val document = app.get(url).document
+        val home = document.select("article, .film-kutu, .movie-item, div.poster-item, div.item").mapNotNull {
+            it.toSearchResult()
+        }
+
+        return newHomePageResponse(request.name, home)
     }
 
     private fun Element.toSearchResult(): SearchResponse? {
-        val href = this.attr("href")
+        val aEl = this.selectFirst("a[href*='/film/']") ?: this.selectFirst("a") ?: return null
+        val href = fixUrlNull(aEl.attr("href")) ?: return null
         if (!href.contains("/film/")) return null
-        val fullUrl = fixUrl(href)
-
-        val title = this.selectFirst("h3.card-title")?.text()?.trim()
-            ?: this.selectFirst("img")?.attr("alt")?.trim()
-            ?: return null
 
         val imgEl = this.selectFirst("img")
-        val rawImg = imgEl?.attr("src")?.ifBlank { null } ?: imgEl?.attr("data-src")
-        val poster = fixUrlNull(rawImg)
+        val title = (imgEl?.attr("alt")?.takeIf { it.isNotBlank() }
+            ?: this.selectFirst("h2, h3, .title, .film-title")?.text()?.takeIf { it.isNotBlank() }
+            ?: aEl.attr("title")?.takeIf { it.isNotBlank() }
+            ?: aEl.text()).trim()
 
-        val year = this.selectFirst("div.card-meta span")?.text()?.filter { it.isDigit() }?.take(4)?.toIntOrNull()
-        val score = this.selectFirst("span.rating")?.text()?.filter { it.isDigit() || it == '.' }?.toDoubleOrNull()
+        if (title.isBlank()) return null
 
-        return newMovieSearchResponse(title, fullUrl, TvType.Movie) {
+        val poster = fixUrlNull(
+            imgEl?.attr("data-src")?.takeIf { it.isNotBlank() }
+                ?: imgEl?.attr("src")?.takeIf { !it.startsWith("data:") }
+        )
+
+        return newMovieSearchResponse(title, href, TvType.Movie) {
             this.posterUrl = poster
-            this.year      = year
-            this.score     = Score.from10(score)
         }
     }
 
     override suspend fun search(query: String): List<SearchResponse> {
-        val document = app.get("${mainUrl}/ara?q=${query}").document
-        return document.select("a[href*='/film/']").mapNotNull { it.toSearchResult() }.distinctBy { it.url }
+        val searchUrl = "$mainUrl/ara?q=${query.trim()}"
+        val document = app.get(searchUrl).document
+        return document.select("article, .film-kutu, .movie-item, div.poster-item, div.item, a[href*='/film/']").mapNotNull {
+            it.toSearchResult()
+        }.distinctBy { it.url }
     }
-
-    override suspend fun quickSearch(query: String): List<SearchResponse> = search(query)
 
     override suspend fun load(url: String): LoadResponse? {
         val document = app.get(url).document
-
-        val rawTitle = document.selectFirst("h1")?.text()?.trim()
+        val rawTitle = document.selectFirst("h1, .film-title, .title")?.text()?.trim()
             ?: document.title().substringBefore(" izle").trim()
+
         val title = rawTitle.substringBefore(" izle").trim()
 
         val poster = fixUrlNull(
@@ -118,29 +118,145 @@ class FilmDozu : MainAPI() {
         }
 
         // 2. Buttons / tabs data-src
-        document.select("[data-src], [data-video], [data-embed]").forEach {
-            val src = it.attr("data-src").ifBlank { it.attr("data-video").ifBlank { it.attr("data-embed") } }
+        document.select("[data-src], [data-video], [data-embed], [data-url]").forEach {
+            val src = it.attr("data-src").ifBlank {
+                it.attr("data-video").ifBlank {
+                    it.attr("data-embed").ifBlank { it.attr("data-url") }
+                }
+            }
             if (src.isNotBlank() && !src.startsWith("about:") && !src.contains("youtube.com")) {
                 embedUrls.add(fixUrl(src))
             }
         }
 
-        // 3. Regex matches for vidmoly and ok.ru
-        val regex = Regex("""https?:[\\/]+(?:vidmoly\.net|ok\.ru)[\\/][a-zA-Z0-9_\-\.\?&=;]+""")
+        // 3. Regex matches for vidmoly and ok.ru in full html
+        val regex = Regex("""https?:[\\/]+(?:vidmoly\.[a-z]+|ok\.ru)[\\/][a-zA-Z0-9_\-\.\?&=;]+""")
         regex.findAll(html).forEach {
             val cleaned = it.value.replace("\\/", "/").replace("&amp;", "&")
             embedUrls.add(cleaned)
         }
 
         var foundAny = false
+
         for (embed in embedUrls) {
-            try {
-                if (loadExtractor(embed, "$mainUrl/", subtitleCallback, callback)) {
-                    foundAny = true
+            when {
+                embed.contains("vidmoly") -> {
+                    if (extractVidmoly(embed, data, callback)) {
+                        foundAny = true
+                    }
                 }
-            } catch (_: Exception) {}
+                embed.contains("ok.ru") -> {
+                    if (extractOkRu(embed, callback)) {
+                        foundAny = true
+                    }
+                }
+                else -> {
+                    try {
+                        if (loadExtractor(embed, "$mainUrl/", subtitleCallback, callback)) {
+                            foundAny = true
+                        }
+                    } catch (_: Exception) {}
+                }
+            }
         }
 
         return foundAny
+    }
+
+    private suspend fun extractVidmoly(
+        embedUrl: String,
+        referer: String,
+        callback: (ExtractorLink) -> Unit
+    ): Boolean {
+        return try {
+            val headers = mapOf(
+                "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                "Referer"    to referer
+            )
+            val html = app.get(embedUrl, headers = headers).text
+            val m3uLink = Regex("""file\s*:\s*["']([^"']+\.m3u8[^"']*)["']""").find(html)?.groupValues?.get(1)
+                ?: Regex("""["'](https?:[\\/]+[^"']+\.m3u8[^"']*)["']""").find(html)?.groupValues?.get(1)?.replace("\\/", "/")
+
+            if (m3uLink != null) {
+                callback.invoke(
+                    newExtractorLink(
+                        source  = name,
+                        name    = "VidMoly 1080p",
+                        url     = m3uLink,
+                        type    = ExtractorLinkType.M3U8
+                    ) {
+                        this.headers = mapOf("Referer" to embedUrl)
+                        this.quality = Qualities.P1080.value
+                    }
+                )
+                true
+            } else {
+                false
+            }
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    private suspend fun extractOkRu(
+        embedUrl: String,
+        callback: (ExtractorLink) -> Unit
+    ): Boolean {
+        return try {
+            val html = app.get(embedUrl).text
+            val optionsMatch = Regex("""data-options="([^"]+)"""").find(html)?.groupValues?.get(1) ?: return false
+            val unescaped = org.jsoup.parser.Parser.unescapeEntities(optionsMatch, false)
+            val root = tryParseJson<Map<String, Any>>(unescaped) ?: return false
+            val flashvars = root["flashvars"] as? Map<*, *>
+            val metadataRaw = flashvars?.get("metadata")
+            val metadata = when (metadataRaw) {
+                is String -> tryParseJson<Map<String, Any>>(metadataRaw)
+                is Map<*, *> -> metadataRaw as? Map<String, Any>
+                else -> null
+            } ?: return false
+
+            var found = false
+            val videos = metadata["videos"] as? List<Map<String, Any>>
+            videos?.forEach { v ->
+                val qName = v["name"] as? String ?: "SD"
+                val vUrl = v["url"] as? String ?: return@forEach
+                val quality = when (qName.lowercase()) {
+                    "full", "1080" -> Qualities.P1080.value
+                    "hd", "720"    -> Qualities.P720.value
+                    "sd", "480"    -> Qualities.P480.value
+                    else           -> Qualities.Unknown.value
+                }
+                callback.invoke(
+                    newExtractorLink(
+                        source  = name,
+                        name    = "Ok.ru $qName",
+                        url     = vUrl,
+                        type    = ExtractorLinkType.VIDEO
+                    ) {
+                        this.quality = quality
+                    }
+                )
+                found = true
+            }
+
+            val hlsUrl = metadata["hlsManifestUrl"] as? String
+            if (hlsUrl != null) {
+                callback.invoke(
+                    newExtractorLink(
+                        source  = name,
+                        name    = "Ok.ru HLS",
+                        url     = hlsUrl,
+                        type    = ExtractorLinkType.M3U8
+                    ) {
+                        this.quality = Qualities.P1080.value
+                    }
+                )
+                found = true
+            }
+
+            found
+        } catch (_: Exception) {
+            false
+        }
     }
 }

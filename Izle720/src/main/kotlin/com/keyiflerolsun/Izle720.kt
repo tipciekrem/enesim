@@ -161,13 +161,29 @@ class Izle720 : MainAPI() {
 
             val cleanSrc = fixUrl(src)
 
-            if (cleanSrc.contains("hotstream.club/embed/")) {
-                if (extractHotstream(cleanSrc, data, callback)) {
-                    foundAny = true
+            when {
+                cleanSrc.contains("hotstream.club/embed/") -> {
+                    if (extractHotstream(cleanSrc, data, callback)) {
+                        foundAny = true
+                    }
                 }
-            } else {
-                loadExtractor(cleanSrc, data, subtitleCallback, callback)
-                foundAny = true
+                cleanSrc.contains("vidmoly") -> {
+                    if (extractVidmoly(cleanSrc, data, callback)) {
+                        foundAny = true
+                    }
+                }
+                cleanSrc.contains("ok.ru") -> {
+                    if (extractOkRu(cleanSrc, callback)) {
+                        foundAny = true
+                    }
+                }
+                else -> {
+                    try {
+                        if (loadExtractor(cleanSrc, data, subtitleCallback, callback)) {
+                            foundAny = true
+                        }
+                    } catch (_: Exception) {}
+                }
             }
         }
 
@@ -181,7 +197,8 @@ class Izle720 : MainAPI() {
     ): Boolean {
         try {
             val html = app.get(embedUrl, referer = referer).text
-            val match = Regex("""bePlayer\(\s*'([^']+)'\s*,\s*'(\{.+?\})'\s*\)""").find(html) ?: return false
+            val match = Regex("""bePlayer\(\s*'([^']+)'\s*,\s*'(\{.+?\})'\s*\)""", RegexOption.DOT_MATCHES_ALL).find(html)
+                ?: return false
 
             val passphrase = match.groupValues[1]
             val jsonPayload = match.groupValues[2].replace("\\/", "/")
@@ -197,22 +214,128 @@ class Izle720 : MainAPI() {
             val videoLocation = decryptedData["video_location"] as? String ?: return false
 
             val masterM3u8 = app.get(videoLocation, referer = "https://hotstream.club/").text
-            if (masterM3u8.contains("#EXTM3U")) {
-                callback.invoke(
-                    newExtractorLink(
-                        source = name,
-                        name   = "$name Hotstream",
-                        url    = videoLocation,
-                        type   = ExtractorLinkType.M3U8
-                    ) {
-                        this.headers = mapOf("Referer" to "https://hotstream.club/")
-                        this.quality = Qualities.P1080.value
-                    }
-                )
+            if (masterM3u8.contains("#EXTM3U") || masterM3u8.contains("#EXT-X-")) {
+                val streamUrls = masterM3u8.lines()
+                    .map { it.trim() }
+                    .filter { it.startsWith("http") }
+
+                val targets = if (streamUrls.isNotEmpty()) streamUrls else listOf(videoLocation)
+
+                for (target in targets) {
+                    val playableUrl = if (!target.contains(".m3u8")) "$target#.m3u8" else target
+                    callback.invoke(
+                        newExtractorLink(
+                            source = name,
+                            name   = "$name Hotstream",
+                            url    = playableUrl,
+                            type   = ExtractorLinkType.M3U8
+                        ) {
+                            this.headers = mapOf("Referer" to "https://hotstream.club/")
+                            this.quality = Qualities.P1080.value
+                        }
+                    )
+                }
                 return true
             }
         } catch (_: Exception) {}
         return false
+    }
+
+    private suspend fun extractVidmoly(
+        embedUrl: String,
+        referer: String,
+        callback: (ExtractorLink) -> Unit
+    ): Boolean {
+        return try {
+            val headers = mapOf(
+                "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                "Referer"    to referer
+            )
+            val html = app.get(embedUrl, headers = headers).text
+            val m3uLink = Regex("""file\s*:\s*["']([^"']+\.m3u8[^"']*)["']""").find(html)?.groupValues?.get(1)
+                ?: Regex("""["'](https?:[\\/]+[^"']+\.m3u8[^"']*)["']""").find(html)?.groupValues?.get(1)?.replace("\\/", "/")
+
+            if (m3uLink != null) {
+                callback.invoke(
+                    newExtractorLink(
+                        source  = name,
+                        name    = "VidMoly 1080p",
+                        url     = m3uLink,
+                        type    = ExtractorLinkType.M3U8
+                    ) {
+                        this.headers = mapOf("Referer" to embedUrl)
+                        this.quality = Qualities.P1080.value
+                    }
+                )
+                true
+            } else {
+                false
+            }
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    private suspend fun extractOkRu(
+        embedUrl: String,
+        callback: (ExtractorLink) -> Unit
+    ): Boolean {
+        return try {
+            val html = app.get(embedUrl).text
+            val optionsMatch = Regex("""data-options="([^"]+)"""").find(html)?.groupValues?.get(1) ?: return false
+            val unescaped = org.jsoup.parser.Parser.unescapeEntities(optionsMatch, false)
+            val root = tryParseJson<Map<String, Any>>(unescaped) ?: return false
+            val flashvars = root["flashvars"] as? Map<*, *>
+            val metadataRaw = flashvars?.get("metadata")
+            val metadata = when (metadataRaw) {
+                is String -> tryParseJson<Map<String, Any>>(metadataRaw)
+                is Map<*, *> -> metadataRaw as? Map<String, Any>
+                else -> null
+            } ?: return false
+
+            var found = false
+            val videos = metadata["videos"] as? List<Map<String, Any>>
+            videos?.forEach { v ->
+                val qName = v["name"] as? String ?: "SD"
+                val vUrl = v["url"] as? String ?: return@forEach
+                val quality = when (qName.lowercase()) {
+                    "full", "1080" -> Qualities.P1080.value
+                    "hd", "720"    -> Qualities.P720.value
+                    "sd", "480"    -> Qualities.P480.value
+                    else           -> Qualities.Unknown.value
+                }
+                callback.invoke(
+                    newExtractorLink(
+                        source  = name,
+                        name    = "Ok.ru $qName",
+                        url     = vUrl,
+                        type    = ExtractorLinkType.VIDEO
+                    ) {
+                        this.quality = quality
+                    }
+                )
+                found = true
+            }
+
+            val hlsUrl = metadata["hlsManifestUrl"] as? String
+            if (hlsUrl != null) {
+                callback.invoke(
+                    newExtractorLink(
+                        source  = name,
+                        name    = "Ok.ru HLS",
+                        url     = hlsUrl,
+                        type    = ExtractorLinkType.M3U8
+                    ) {
+                        this.quality = Qualities.P1080.value
+                    }
+                )
+                found = true
+            }
+
+            found
+        } catch (_: Exception) {
+            false
+        }
     }
 
     private fun decryptAes(passphrase: String, saltHex: String, ivHex: String, ctB64: String): String? {
