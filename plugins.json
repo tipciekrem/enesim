@@ -65,7 +65,7 @@
     {
         "url": "https://raw.githubusercontent.com/tipciekrem/enesim/builds/CanliTV.cs3",
         "status": 1,
-        "version": 210,
+        "version": 300,
         "name": "CanliTV",
         "internalName": "CanliTV",
         "authors": [
@@ -73,7 +73,7 @@
             "keyiflerolsun"
         ],
         "description": "Canlı TV",
-        "fileSize": 20480,
+        "fileSize": 20487,
         "repositoryUrl": "https://github.com/tipciekrem/enesim",
         "language": "tr",
         "tvTypes": [
@@ -81,7 +81,7 @@
         ],
         "iconUrl": "https://www.google.com/s2/favicons?domain=tr.canlitv.team&sz=%size%",
         "apiVersion": 1,
-        "fileHash": "sha256-d4e8de61fd99275ecda7a2c1a53da5b1643cfa42e8f6bba0c32383b722de14db"
+        "fileHash": "sha256-03ac78e03c3827e71b1bbb208533d06fae5f8041906d7f135d617e0292d9a192"
     },
     {
         "url": "https://raw.githubusercontent.com/tipciekrem/enesim/builds/CizgiMax.cs3",
