@@ -2,7 +2,7 @@
   {
     "url": "https://raw.githubusercontent.com/tipciekrem/enesim/builds/Izle720.cs3",
     "status": 1,
-    "version": 301,
+    "version": 302,
     "name": "720izle",
     "internalName": "720izle",
     "authors": [
@@ -10,7 +10,7 @@
       "patr0n"
     ],
     "description": "720izle - 720izle.net Güncel Türkçe Dublaj ve Altyazılı Full HD Filmler ve Diziler.",
-    "fileSize": 29110,
+    "fileSize": 30783,
     "repositoryUrl": "https://github.com/tipciekrem/enesim",
     "language": "tr",
     "tvTypes": [
@@ -19,7 +19,7 @@
     ],
     "iconUrl": "https://www.google.com/s2/favicons?domain=720izle.net&sz=%size%",
     "apiVersion": 1,
-    "fileHash": "sha256-17a4cd0afef0ff0b245f11012bcf36e81ea3e290a61537a52796c9e0821bdad8"
+    "fileHash": "sha256-f7f6612ee4e8d97f34dfde0d87a5d518796d4e9f410d9d094017b4c5bcaaeebf"
   },
   {
     "url": "https://raw.githubusercontent.com/tipciekrem/enesim/builds/CanliTV.cs3",
