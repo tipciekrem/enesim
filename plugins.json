@@ -21,6 +21,26 @@
         "fileHash": "sha256-03ac78e03c3827e71b1bbb208533d06fae5f8041906d7f135d617e0292d9a192"
     },
     {
+        "url": "https://raw.githubusercontent.com/tipciekrem/enesim/builds/DiziBox.cs3",
+        "status": 1,
+        "version": 300,
+        "name": "DiziBox",
+        "internalName": "DiziBox",
+        "authors": [
+            "keyiflerolsun"
+        ],
+        "description": "Yabancı Dizi izle, Tüm yabancı dizilerin yeni ve eski sezonlarını full hd izleyebileceğiniz elit site.",
+        "fileSize": 30086,
+        "repositoryUrl": "https://github.com/tipciekrem/enesim",
+        "language": "tr",
+        "tvTypes": [
+            "TvSeries"
+        ],
+        "iconUrl": "https://www.google.com/s2/favicons?domain=www.dizibox.live&sz=%size%",
+        "apiVersion": 1,
+        "fileHash": "sha256-c02b1b5731c5015f9c4debdf9b5f273827ad1a52a8caa57707ecba3d6bca5bf3"
+    },
+    {
         "url": "https://raw.githubusercontent.com/tipciekrem/enesim/builds/DiziPal.cs3",
         "status": 1,
         "version": 313,
@@ -62,6 +82,27 @@
         "iconUrl": "https://www.google.com/s2/favicons?domain=dizipod.com&sz=%size%",
         "apiVersion": 1,
         "fileHash": "sha256-c4be7b192eec30ffc084f8df86e30f0ccc59270e58fe7dc99b989677963224f5"
+    },
+    {
+        "url": "https://raw.githubusercontent.com/tipciekrem/enesim/builds/FilmDozu.cs3",
+        "status": 1,
+        "version": 300,
+        "name": "FilmDozu",
+        "internalName": "FilmDozu",
+        "authors": [
+            "keyiflerolsun",
+            "patr0n"
+        ],
+        "description": "FilmDozu - filmdozu.com Full HD Türkçe Dublaj & Altyazılı Filmler (VidMoly & OkRu)",
+        "fileSize": 13546,
+        "repositoryUrl": "https://github.com/tipciekrem/enesim",
+        "language": "tr",
+        "tvTypes": [
+            "Movie"
+        ],
+        "iconUrl": "https://www.google.com/s2/favicons?domain=filmdozu.com&sz=%size%",
+        "apiVersion": 1,
+        "fileHash": "sha256-7c15530e18e99839582b4f56977cc41391da153e8c2a64355cc7d72e7392c125"
     },
     {
         "url": "https://raw.githubusercontent.com/tipciekrem/enesim/builds/FilmModu.cs3",
@@ -126,6 +167,27 @@
         "fileHash": "sha256-453fe0ac8d5de15889dd067334a523946a36b0c3886c06030c6e65e6c4467dac"
     },
     {
+        "url": "https://raw.githubusercontent.com/tipciekrem/enesim/builds/HDFilmDelisi.cs3",
+        "status": 1,
+        "version": 301,
+        "name": "HDFilmDelisi",
+        "internalName": "HDFilmDelisi",
+        "authors": [
+            "patr0n",
+            "keyiflerolsun"
+        ],
+        "description": "HD Film Delisi - hdfilmdelisi.one Türkçe Dublaj ve Altyazılı 1080p Full HD Filmler",
+        "fileSize": 64912,
+        "repositoryUrl": "https://github.com/tipciekrem/enesim",
+        "language": "tr",
+        "tvTypes": [
+            "Movie"
+        ],
+        "iconUrl": "https://www.google.com/s2/favicons?domain=hdfilmdelisi.one&sz=%size%",
+        "apiVersion": 1,
+        "fileHash": "sha256-8dc2cd6241bb216d89f559c587ae873bd1939aba51b0b558edac8dfc5b9cefff"
+    },
+    {
         "url": "https://raw.githubusercontent.com/tipciekrem/enesim/builds/JetFilmizle.cs3",
         "status": 1,
         "version": 247,
@@ -165,6 +227,32 @@
         "iconUrl": "https://www.google.com/s2/favicons?domain=kultfilmler.net&sz=%size%",
         "apiVersion": 1,
         "fileHash": "sha256-47b263ff6bf1b4f65d17b3aee00112e687de473ce7fd2fd777b17c2ba0290104"
+    },
+    {
+        "url": "https://raw.githubusercontent.com/tipciekrem/enesim/builds/RecTV.cs3",
+        "status": 1,
+        "version": 313,
+        "name": "RecTV",
+        "internalName": "RecTV",
+        "authors": [
+            "keyiflerolsun",
+            "yusiqo",
+            "inatchii",
+            "JustRelaxable",
+            "patr0n"
+        ],
+        "description": "RecTv APK, Türkiye'deki en popüler Çevrimiçi Medya Akış platformlarından biridir. Filmlerin, Canlı Sporların, Web Dizilerinin ve çok daha fazlasının keyfini ücretsiz çıkarın.",
+        "fileSize": 28846,
+        "repositoryUrl": "https://github.com/tipciekrem/enesim",
+        "language": "tr",
+        "tvTypes": [
+            "Movie",
+            "Live",
+            "TvSeries"
+        ],
+        "iconUrl": "https://rectv.org.tr/wp-content/uploads/2024/11/rectv-modified.webp",
+        "apiVersion": 1,
+        "fileHash": "sha256-e04263fe93a131c4502fab15615735d6826580f99062f61dc2b062c0ce8976ab"
     },
     {
         "url": "https://raw.githubusercontent.com/tipciekrem/enesim/builds/Sinewix.cs3",
@@ -252,73 +340,5 @@
         "iconUrl": "https://www.google.com/s2/favicons?domain=webteizle3.xyz&sz=%size%",
         "apiVersion": 1,
         "fileHash": "sha256-c014c951be6263c0eea12449fa1ebf5b0cbd309bf7359afff7dc4f9720540d63"
-    },
-    {
-        "url": "https://raw.githubusercontent.com/tipciekrem/enesim/builds/RecTV.cs3",
-        "status": 1,
-        "version": 313,
-        "name": "RecTV",
-        "internalName": "RecTV",
-        "authors": [
-            "keyiflerolsun",
-            "yusiqo",
-            "inatchii",
-            "JustRelaxable",
-            "patr0n"
-        ],
-        "description": "RecTv APK, Türkiye'deki en popüler Çevrimiçi Medya Akış platformlarından biridir. Filmlerin, Canlı Sporların, Web Dizilerinin ve çok daha fazlasının keyfini ücretsiz çıkarın.",
-        "fileSize": 28846,
-        "repositoryUrl": "https://github.com/tipciekrem/enesim",
-        "language": "tr",
-        "tvTypes": [
-            "Movie",
-            "Live",
-            "TvSeries"
-        ],
-        "iconUrl": "https://rectv.org.tr/wp-content/uploads/2024/11/rectv-modified.webp",
-        "apiVersion": 1,
-        "fileHash": "sha256-e04263fe93a131c4502fab15615735d6826580f99062f61dc2b062c0ce8976ab"
-    },
-    {
-        "url": "https://raw.githubusercontent.com/tipciekrem/enesim/builds/HDFilmDelisi.cs3",
-        "status": 1,
-        "version": 301,
-        "name": "HDFilmDelisi",
-        "internalName": "HDFilmDelisi",
-        "authors": [
-            "patr0n",
-            "keyiflerolsun"
-        ],
-        "description": "HD Film Delisi - hdfilmdelisi.one Türkçe Dublaj ve Altyazılı 1080p Full HD Filmler",
-        "fileSize": 64912,
-        "repositoryUrl": "https://github.com/tipciekrem/enesim",
-        "language": "tr",
-        "tvTypes": [
-            "Movie"
-        ],
-        "iconUrl": "https://www.google.com/s2/favicons?domain=hdfilmdelisi.one&sz=%size%",
-        "apiVersion": 1,
-        "fileHash": "sha256-8dc2cd6241bb216d89f559c587ae873bd1939aba51b0b558edac8dfc5b9cefff"
-    },
-    {
-        "url": "https://raw.githubusercontent.com/tipciekrem/enesim/builds/FilmDozu.cs3",
-        "status": 1,
-        "version": 300,
-        "name": "FilmDozu",
-        "internalName": "FilmDozu",
-        "authors": [
-            "keyiflerolsun",
-            "patr0n"
-        ],
-        "description": "FilmDozu - filmdozu.com Full HD Türkçe Dublaj & Altyazılı Filmler (VidMoly & OkRu)",
-        "fileSize": 13546,
-        "repositoryUrl": "https://github.com/tipciekrem/enesim",
-        "language": "tr",
-        "tvTypes": [
-            "Movie"
-        ],
-        "iconUrl": "https://www.google.com/s2/favicons?domain=filmdozu.com&sz=%size%",
-        "apiVersion": 1,
-        "fileHash": "sha256-7c15530e18e99839582b4f56977cc41391da153e8c2a64355cc7d72e7392c125"
     }
 ]
